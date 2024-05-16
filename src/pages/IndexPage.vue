@@ -4,7 +4,7 @@
       <div class="q-mb-xl">
         <q-input v-model="tempData.name" label="姓名" />
         <q-input v-model="tempData.age" label="年齡" />
-        <q-btn color="primary" class="q-mt-md">新增</q-btn>
+        <q-btn color="primary" class="q-mt-md" @click="handleAdd">新增</q-btn>
       </div>
 
       <q-table
@@ -86,8 +86,14 @@ interface btnType {
   icon: string;
   status: string;
 }
+
+interface NewData {
+  name: string;
+  age: number;
+}
 const blockData = ref([
   {
+    id: 0,
     name: 'test',
     age: 25,
   },
@@ -123,9 +129,82 @@ const tempData = ref({
   name: '',
   age: '',
 });
+
 function handleClickOption(btn, data) {
-  // ...
+  if (btn.status === 'edit') {
+    const updatedData = {
+      id: data.id,
+      name: tempData.value.name,
+      age: + tempData.value.age,
+    };
+
+    axios.patch('https://dahua.metcfire.com.tw/api/CRUDTest/', updatedData)
+      .then(response => {
+        console.log('編輯成功:', response.data);
+        axios.get('https://dahua.metcfire.com.tw/api/CRUDTest/a')
+          .then(response => {
+            console.log(response.data);
+            blockData.value = response.data;
+          })
+          .catch(error => {
+            console.error('Error fetching data:', error);
+        });
+
+        const index = blockData.value.findIndex(item => item.id === data.id);
+        if (index !== -1) {
+          blockData.value.splice(index, 1, response.data);
+        }
+      })
+      .catch(error => {
+        console.error('編輯失敗:', error);
+      });
+  } else if (btn.status === 'delete') {
+    if (confirm('確定要刪除嗎？')) {
+      axios.delete(`https://dahua.metcfire.com.tw/api/CRUDTest/${data.id}`)
+        .then(response => {
+          console.log(response.data);
+          blockData.value = blockData.value.filter(item => item.id !== data.id);
+        })
+        .catch(error => {
+          console.error('Error deleting data:', error);
+        });
+    }
+  }
 }
+
+axios.get('https://dahua.metcfire.com.tw/api/CRUDTest/a')
+  .then(response => {
+    console.log(response.data);
+    blockData.value = response.data;
+  })
+  .catch(error => {
+    console.error('Error fetching data:', error);
+});
+
+function handleAdd() {
+  const newData: NewData = {
+  name: tempData.value.name,
+  age: + tempData.value.age,
+};
+
+  blockData.value.push(newData);
+
+  axios.post('https://dahua.metcfire.com.tw/api/CRUDTest', newData)
+    .then(response => {
+      console.log('新增成功:', response.data);
+
+      tempData.value = {
+        name: '',
+        age: '',
+      };
+    })
+    .catch(error => {
+      console.error('新增失敗:', error);
+    });
+}
+
+
+
 </script>
 
 <style lang="scss" scoped>
